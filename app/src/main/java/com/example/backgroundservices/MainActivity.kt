@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var statusTextView: TextView
     private lateinit var btnStart: Button
+    private lateinit var btnExercise: Button
 
     companion object {
         const val ACTION_SERVICE_STOPPED_JUMP =
@@ -47,6 +48,7 @@ class MainActivity : AppCompatActivity() {
 
         statusTextView = findViewById(R.id.statusTextView)
         btnStart = findViewById(R.id.btnStart)
+        btnExercise = findViewById(R.id.btnExercise)
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -64,6 +66,10 @@ class MainActivity : AppCompatActivity() {
                     REQUEST_CODE_PERMISSIONS
                 )
             }
+        }
+
+        btnExercise.setOnClickListener {
+            statusTextView.text = "Latihan siap dimulai"
         }
 
         handleIntent(intent)
