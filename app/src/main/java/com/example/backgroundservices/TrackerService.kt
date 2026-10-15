@@ -28,6 +28,14 @@ class TrackerService : Service(), SensorEventListener {
     private val NOTIFICATION_ID_SERVICE_RUNNING = 1
     private val NOTIFICATION_ID_JUMP_DETECTED = 2
 
+    private var exerciseMode = false
+    private var jumpCount = 0
+    private var stepCount = 0
+
+    companion object {
+        const val EXTRA_EXERCISE_MODE = "exercise_mode"
+    }
+
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
@@ -72,6 +80,16 @@ class TrackerService : Service(), SensorEventListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("TrackerService", "Service onStartCommand")
 
+        if (intent != null) {
+            exerciseMode = intent.getBooleanExtra(EXTRA_EXERCISE_MODE, false)
+        }
+
+        if (exerciseMode) {
+            jumpCount = 0
+            stepCount = 0
+            Log.d("TrackerService", "Mode latihan dimulai")
+        }
+
         startForeground(
             NOTIFICATION_ID_SERVICE_RUNNING,
             buildServiceRunningNotification()
@@ -108,15 +126,47 @@ class TrackerService : Service(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
             val y = event.values[1]
-            val jumpThreshold = 15.0
 
-            if (abs(y) > jumpThreshold) {
-                Log.d("TrackerService", "LOMPATAN Terdeteksi! Y: $y")
+            if (exerciseMode) {
+                val stepThreshold = 12.0
+                val jumpThreshold = 15.0
 
-                sensorManager.unregisterListener(this)
+                if (abs(y) > jumpThreshold) {
+                    jumpCount++
 
-                showJumpNotification()
-                stopSelf()
+                    Log.d(
+                        "TrackerService",
+                        "LOMPATAN: $jumpCount Y: $y"
+                    )
+                } else if (abs(y) > stepThreshold) {
+                    stepCount++
+
+                    Log.d(
+                        "TrackerService",
+                        "LANGKAH: $stepCount Y: $y"
+                    )
+
+                    if (stepCount > 2) {
+                        Log.d(
+                            "TrackerService",
+                            "LATIHAN SELESAI. Jumlah lompatan: $jumpCount"
+                        )
+
+                        sensorManager.unregisterListener(this)
+                        stopSelf()
+                    }
+                }
+            } else {
+                val jumpThreshold = 15.0
+
+                if (abs(y) > jumpThreshold) {
+                    Log.d("TrackerService", "LOMPATAN Terdeteksi! Y: $y")
+
+                    sensorManager.unregisterListener(this)
+
+                    showJumpNotification()
+                    stopSelf()
+                }
             }
         }
     }

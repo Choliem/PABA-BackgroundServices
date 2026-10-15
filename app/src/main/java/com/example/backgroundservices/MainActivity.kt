@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusTextView: TextView
     private lateinit var btnStart: Button
     private lateinit var btnExercise: Button
+    private var startExerciseAfterPermission = false
 
     companion object {
         const val ACTION_SERVICE_STOPPED_JUMP =
@@ -57,6 +58,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnStart.setOnClickListener {
+            startExerciseAfterPermission = false
+
             if (hasAllPermissions()) {
                 startTrackerService()
             } else {
@@ -69,7 +72,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnExercise.setOnClickListener {
-            statusTextView.text = "Latihan siap dimulai"
+            startExerciseAfterPermission = true
+
+            if (hasAllPermissions()) {
+                startExerciseService()
+            } else {
+                ActivityCompat.requestPermissions(
+                    this,
+                    permissionsToRequest,
+                    REQUEST_CODE_PERMISSIONS
+                )
+            }
         }
 
         handleIntent(intent)
@@ -86,8 +99,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun startTrackerService() {
         val serviceIntent = Intent(this, TrackerService::class.java)
-        ContextCompat.startForegroundService(this, serviceIntent)
+        startForegroundService(serviceIntent)
         statusTextView.text = "Background service sedang berjalan...."
+    }
+
+    private fun startExerciseService() {
+        val serviceIntent = Intent(this, TrackerService::class.java)
+        serviceIntent.putExtra(TrackerService.EXTRA_EXERCISE_MODE, true)
+        startForegroundService(serviceIntent)
+        finish()
     }
 
     override fun onRequestPermissionsResult(
@@ -108,9 +128,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (allPermissionsGranted) {
-                val serviceIntent = Intent(this, TrackerService::class.java)
-                startForegroundService(serviceIntent)
-                finish()
+                if (startExerciseAfterPermission) {
+                    startExerciseService()
+                } else {
+                    val serviceIntent = Intent(this, TrackerService::class.java)
+                    startForegroundService(serviceIntent)
+                    finish()
+                }
             } else {
                 statusTextView.text = "Izin ditolak, service tidak dapat dijalankan."
             }
