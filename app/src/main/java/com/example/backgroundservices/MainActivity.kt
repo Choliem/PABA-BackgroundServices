@@ -5,14 +5,15 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.CalendarContract
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
@@ -23,9 +24,14 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
-    } else {
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         arrayOf(
             Manifest.permission.ACTIVITY_RECOGNITION,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    } else {
+        arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
@@ -39,6 +45,12 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val ACTION_SERVICE_STOPPED_JUMP =
             "com.example.backgroundservices.ACTION_SERVICE_STOPPED_JUMP"
+
+        const val ACTION_EXERCISE_FINISHED =
+            "com.example.backgroundservices.ACTION_EXERCISE_FINISHED"
+
+        const val EXTRA_JUMP_COUNT = "jump_count"
+
         const val REQUEST_CODE_PERMISSIONS = 101
     }
 
@@ -90,10 +102,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun hasAllPermissions(): Boolean {
         return permissionsToRequest.all {
-            ContextCompat.checkSelfPermission(
-                this,
-                it
-            ) == PackageManager.PERMISSION_GRANTED
+            checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -145,6 +154,42 @@ class MainActivity : AppCompatActivity() {
         if (intent?.action == ACTION_SERVICE_STOPPED_JUMP) {
             statusTextView.text =
                 "Background services sudah berhenti karena Anda melompat"
+        }
+
+        if (intent?.action == ACTION_EXERCISE_FINISHED) {
+            val jumpCount = intent.getIntExtra(EXTRA_JUMP_COUNT, 0)
+
+            statusTextView.text =
+                "Latihan selesai\nJumlah lompatan: $jumpCount"
+
+            createCalendarEvent(jumpCount)
+        }
+    }
+
+    private fun createCalendarEvent(jumpCount: Int) {
+        val startTime = Calendar.getInstance()
+        val endTime = Calendar.getInstance()
+        endTime.add(Calendar.HOUR, 1)
+
+        val calendarIntent = Intent(Intent.ACTION_INSERT).apply {
+            data = CalendarContract.Events.CONTENT_URI
+            putExtra(CalendarContract.Events.TITLE, "Latihan Hari Ini")
+            putExtra(
+                CalendarContract.Events.DESCRIPTION,
+                "Jumlah lompatan: $jumpCount"
+            )
+            putExtra(
+                CalendarContract.EXTRA_EVENT_BEGIN_TIME,
+                startTime.timeInMillis
+            )
+            putExtra(
+                CalendarContract.EXTRA_EVENT_END_TIME,
+                endTime.timeInMillis
+            )
+        }
+
+        if (calendarIntent.resolveActivity(packageManager) != null) {
+            startActivity(calendarIntent)
         }
     }
 

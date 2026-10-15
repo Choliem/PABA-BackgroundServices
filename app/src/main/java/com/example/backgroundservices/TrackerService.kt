@@ -152,8 +152,7 @@ class TrackerService : Service(), SensorEventListener {
                             "LATIHAN SELESAI. Jumlah lompatan: $jumpCount"
                         )
 
-                        sensorManager.unregisterListener(this)
-                        stopSelf()
+                        finishExercise()
                     }
                 }
             } else {
@@ -169,6 +168,24 @@ class TrackerService : Service(), SensorEventListener {
                 }
             }
         }
+    }
+
+    private fun finishExercise() {
+        sensorManager.unregisterListener(this)
+
+        val mainActivityIntent = Intent(
+            this,
+            MainActivity::class.java
+        ).apply {
+            action = MainActivity.ACTION_EXERCISE_FINISHED
+            putExtra(MainActivity.EXTRA_JUMP_COUNT, jumpCount)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+
+        startActivity(mainActivityIntent)
+        stopSelf()
     }
 
     private fun showJumpNotification() {
